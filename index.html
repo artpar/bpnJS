@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BackPropogation Network</title>
+  <link rel='stylesheet' media="screen" href="style/style.css"/>
+  <script type="text/javascript" src="js/bpn.js"></script>
+  <script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+
+</head>
+<body>
+<input type="file" id="files" name="file"/>
+<div id="byte_range"></div>
+<div id="byte_content"></div>
+
+<span class="readBytesButtons" id="buttonspan">
+  <button>Start</button>
+</span>
+
+
+<div>
+  <label>Hidden Layers</label>
+  <input type="text" id='layerspecs' value="2"/>
+
+  <br>
+  <label>
+    Output Columnn type:
+  </label>
+  <select id="lastcolumn">
+    <option value='letter'>Letter</option>
+    <option value='number'>Numeric</option>
+  </select>
+
+  <br>
+  <label>
+    Output Columnn is:
+  </label>
+  <select id="colnumber">
+    <option value='last'>Last</option>
+    <option value='first'>First</option>
+  </select>
+
+  <br>
+  <label>
+    Epoch:
+  </label>
+  <input type="text" id="epoch" value='1000'/>
+
+</div>
+<div>
+  <a href="https://github.com/artpar/bpnJS/tree/master/data">Sample Data files
+    Here</a>
+</div>
+<pre id="console"></pre>
+</body>
+<script type="text/javascript">
+  function readBlob(opt_startByte, opt_stopByte) {
+
+    var files = document.getElementById('files').files;
+    if (!files.length) {
+      alert('Please select a file!');
+      return;
+    }
+
+    var file = files[0];
+    var start = parseInt(opt_startByte) || 0;
+    var stop = parseInt(opt_stopByte) || file.size - 1;
+
+    var reader = new FileReader();
+
+    // If we use onloadend, we need to check the readyState.
+    reader.onloadend = function (evt) {
+      if (evt.target.readyState == FileReader.DONE) { // DONE == 2
+        var data = evt.target.result;
+        $('#console').text('');
+        data = data.split('\n');
+        var dataSetx = new Array;
+        var testDataSet = new Array;
+        var minX = 10000;
+        var maxX = -10000;
+        var datalength = data.length;
+        var type = $('#lastcolumn')[0].value;
+        var colnumber = $('#colnumber')[0].value;
+        var epoch = $('#epoch')[0].value;
+        consolelog(type);
+        for (var r in data) {
+          var m = data[r].split(',');
+          if (colnumber == 'first') {
+            m.push(m.shift());
+          }
+          if (type == 'number') {
+            m[m.length - 1] = m[m.length - 1].toString();
+          } else {
+            var sum = 0;
+            m[m.length - 1].toString().split().every(function (e, a, b) {
+              sum += e.toString().charCodeAt(0);
+            });
+            m[m.length - 1] = sum;
+          }
+
+          //consolelog(m[m.length - 1] + " : " + m[m.length - 1].toString().charCodeAt(0));
+          //m[m.length - 1] = m[m.length - 1].toString().charCodeAt(0);
+          if (parseInt(m[m.length - 1]) < minX)minX = parseInt(m[m.length - 1]);
+          if (parseInt(m[m.length - 1]) > maxX)maxX = parseInt(m[m.length - 1]);
+
+          //testDataSet.push(m);
+          //dataSetx.push(m);
+          if (testDataSet.length < datalength * .2 && mt_rand(1, 20) == 1) {
+            testDataSet.push(m);
+          } else {
+            dataSetx.push(m);
+          }
+        }
+        var layersSize = $('#layerspecs').val().split(',');
+        layersSize.unshift(dataSetx[0].length - 1);
+        layersSize.push(1);
+        consolelog("First row has: " + layersSize[0] + " nodes");
+        consolelog("Last row has: " + 1 + " node");
+        consolelog(layersSize.join(", "));
+        beta = 0.7;
+        alpha = 0.5;
+
+        numLayers = layersSize.length;
+        BackPropagationScale.initialize(numLayers, layersSize, beta, alpha, minX, maxX);
+        BackPropagationScale.Run(dataSetx, testDataSet, epoch);
+      }
+    };
+    var blob;
+    if (file.webkitSlice) {
+      blob = file.webkitSlice(start, stop + 1);
+    } else if (file.mozSlice) {
+      blob = file.mozSlice(start, stop + 1);
+    }
+    reader.readAsBinaryString(blob);
+  }
+
+  document.querySelector('#buttonspan').addEventListener('click', function (evt) {
+    if (evt.target.tagName.toLowerCase() == 'button') {
+      var startByte = evt.target.getAttribute('data-startbyte');
+      var endByte = evt.target.getAttribute('data-endbyte');
+      readBlob(startByte, endByte);
+    }
+  }, false);
+
+  document.querySelector('#addrow').addEventListener('click', function (event) {
+    layers = $('[name=layer]');
+    count = layers.length;
+    lastLayer = layers[layers.length - 1];
+    $('#lastrowid').html(count + 1);
+    var x = "<tr name='layer'><td>Row " + (count) + " (Hidden)</td><td><input type=text value=2 /> Neurons" +
+      "<a href='#'>Delete this Layer</a>" +
+      "</td></tr>";
+    count++;
+    $(lastLayer).before(x);
+  }, false)
+</script>
+</html>
